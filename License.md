@@ -99,11 +99,7 @@ The Licensor reserves the right to modify or discontinue the Model & Software at
 
 ## Publications
 
-If you use the Model & Software in academic or scientific work, you agree to appropriately cite the following publication:
-
-<https://www.overleaf.com/project/667887154fb598f3601588c6>
-
-### Citation
+If you use the Model & Software in academic or scientific work, you agree to appropriately cite the following:
 
 ```bibtex
 @software{MyoTools,
