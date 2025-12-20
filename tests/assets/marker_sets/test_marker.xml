@@ -1,0 +1,4 @@
+<markers name="test markers">
+    <marker name="marker1" body="body1" pos=".0 0 .2" movable="0.0"/>
+    <marker name="marker2" body="body2" pos=".0 .2 .2" movable="0.0"/>
+</markers>
