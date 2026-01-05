@@ -40,5 +40,5 @@ Or, install in editable mode using
 ```bash
 git clone https://github.com/myolab/myo_tools.git
 cd myo_tools
-pip install -e '.[gpu, test]'
+pip install -e '.[test]'
 ```
