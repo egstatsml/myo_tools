@@ -1,8 +1,8 @@
 [project]
 name = "myo_tools"
-version = "0.0.0"
+version = "0.0.1"
 authors = [{name = "myolab"}]
-description = "A Python package for the myo api."
+description = "A Python package for the myo tools."
 readme = "README.md"
 requires-python = ">=3.8"
 
