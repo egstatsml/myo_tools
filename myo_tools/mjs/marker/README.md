@@ -1,4 +1,4 @@
-# marker_set
+# mjs/marker
 _MyoSkeleton_ presents a comprehensive parameterization of human anatomy that can enable diverse usecases across multiple domains. Such as -
   1. Motion analysis in Biomechanics
   2. Motion retargeting for behaviors in graphics and animation

@@ -1,5 +1,5 @@
 """
-Copyright (c) 2025 MyoLab, Inc.
+Copyright (c) 2026 MyoLab, Inc.
 
 Released under the MyoLab Non-Commercial Scientific Research License
 on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
@@ -121,7 +121,10 @@ def test_load_trackers_and_markerset_fallback(mock_from_c3d_to_numpy):
 @patch(
     "myo_tools.utils.mocap_ops.mocap_utils.from_c3d_to_numpy",
     return_value=(
-        mock_motion_data[:, :, :3].copy(),
+        np.concatenate(
+            [mock_motion_data[:, :, :3].copy(), mock_motion_data[:, :1, :3].copy()],
+            axis=1,
+        ),  # 16 columns: original 15 + duplicate of column 0
         mock_marker_names + ["marker1"],  # duplicate marker1
         mock_framerate,
     ),

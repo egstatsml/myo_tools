@@ -1,5 +1,5 @@
 """
-Copyright (c) 2025 MyoLab, Inc.
+Copyright (c) 2026 MyoLab, Inc.
 
 Released under the MyoLab Non-Commercial Scientific Research License
 on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
@@ -21,17 +21,23 @@ import numpy as np
 
 from myo_tools.utils.file_ops.dataframe_utils import from_dataframe_to_array
 from myo_tools.utils.file_ops.xml_utils import load_markerset
+from myo_tools.utils.log_ops import logger
 from myo_tools.utils.mocap_ops.c3d_utils import from_c3d_to_numpy
 from myo_tools.utils.mocap_ops.trc_utils import from_trc_to_numpy
 
+logger = logger.getLogger("myo_tools.utils.mocap_utils")
 
-def load_trackers(trackers_file_path, mocap_scale, clip_length):
+
+def load_trackers(
+    trackers_file_path, mocap_scale, clip_length, rotate_yup_to_zup=False
+):
     """
     Load trackers data from a file, apply scaling and clipping.
     Args:
         trackers_file_path (str): Path to the trackers file (e.g., .c3d)
         mocap_scale (int): Scale factor for mocap data
         clip_length (int): Length of the clip to use
+        rotate_yup_to_zup (bool): Whether to rotate the axes from osim to MuJoCo format. Default is False.
     Returns:
         motion_data (np.ndarray): Loaded and processed motion data
         tracker_names (list): List of tracker names
@@ -61,6 +67,16 @@ def load_trackers(trackers_file_path, mocap_scale, clip_length):
     # Apply mocap scale
     motion_data /= mocap_scale
 
+    # Optionally rotate axes from Y-up to Z-up
+    if rotate_yup_to_zup:
+        logger.info("Rotating mocap data from Y-up to Z-up")
+        # Rotate axes from OpenSim (Y-up) to MuJoCo (Z-up)
+        # Rotate from Y-up to Z-up: R_x(-90°)
+        # This rotates around X-axis by -90 degrees
+        # [x, y, z] -> [x, -z, y]
+        rotation_matrix = np.array([[1, 0, 0], [0, 0, -1], [0, 1, 0]], dtype=np.float32)
+        motion_data = motion_data @ rotation_matrix.T
+
     # Clip length if needed
     if clip_length > 0:
         motion_data = motion_data[:clip_length]
@@ -72,6 +88,7 @@ def load_trackers_and_markerset(
     trackers_file_path: str,
     markerset_handle: str | ET.Element,
     mocap_scale: int = 1000,
+    rotate_yup_to_zup: bool = False,
     clip_length: int = -1,
     chunk_size: int = -1,
     allow_multisubject: bool = False,
@@ -85,6 +102,7 @@ def load_trackers_and_markerset(
         trackers_file_path (str): Path to the trackers file (.c3d, .trc, .csv, .parquet)
         markerset_handle (str | ET.Element): The markerset definition, either as a file path or an XML element.
         mocap_scale (int, optional): Scale factor for mocap data. Defaults to 1000 (i.e. from mm to m).
+        rotate_yup_to_zup (bool, optional): Whether to rotate the axes from osim to MuJoCo format. Defaults to False.
         clip_length (int): Length of the clip to use. Defaults to -1 (use full length).
         chunk_size (int): Size of chunks to split the motion data into. Defaults to -1 (use full length).
         allow_multisubject (bool, optional): If True, allows loading trackers files with multiple subjects.
@@ -99,12 +117,20 @@ def load_trackers_and_markerset(
     """
     # Load trackers data
     motion_data, tracker_names, framerate = load_trackers(
-        trackers_file_path, mocap_scale, clip_length
+        trackers_file_path, mocap_scale, clip_length, rotate_yup_to_zup
     )
 
     # Load markerset
     markerset = load_markerset(markerset_handle)
     markerset_names = [m.get("name") for m in markerset]
+
+    # Remove trackers that are NaN for more than 80% of the frames
+    idxs_valid_trackers = []
+    for i in range(motion_data.shape[1]):
+        if np.sum(np.isnan(motion_data[:, i, 0])) / motion_data.shape[0] <= 0.8:
+            idxs_valid_trackers.append(i)
+    motion_data = motion_data[:, idxs_valid_trackers, :]
+    tracker_names = [tracker_names[i] for i in idxs_valid_trackers]
 
     # Handle multi-subject trackers files
     subjects_list = []
@@ -120,7 +146,6 @@ def load_trackers_and_markerset(
     motion_data_subject_list = []
     all_tracker_names_cleaned = []
     for subject in subjects_list:
-
         # we have a markerset and we need to ensure the trackers data gets filtered
         duplicates = []  # duplicated markers in the trackers file (not allowed)
         absences = []  # markerset markers not found in the trackers file (warned)
@@ -164,6 +189,7 @@ def load_trackers_and_markerset(
 
     # Remove from the markerset the markers that are not in the trackers file
     tracker_names_cleaned = list(set(tracker_names_cleaned))
+
     idxs_markers_to_delete = []
     for i, marker in enumerate(markerset):
         if marker.attrib.get("name") not in tracker_names_cleaned:

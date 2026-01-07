@@ -1,5 +1,5 @@
 """
-Copyright (c) 2025 MyoLab, Inc.
+Copyright (c) 2026 MyoLab, Inc.
 
 Released under the MyoLab Non-Commercial Scientific Research License
 on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,

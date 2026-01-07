@@ -3,4 +3,4 @@ This module provide fundamental APIs that operate directly on uncompiled models 
 
 Navigate to individual folders for API and functionality details.
 
-PS: For fundamental tools to edit and operate on on MuJoCo's **compiled** `MjModel` and `MjData` data structures, refer to [mjs section](../mj/)
+For fundamental tools to edit and operate on on MuJoCo's **compiled** `MjModel` and `MjData` data structures, refer to [mj section](../mj/)

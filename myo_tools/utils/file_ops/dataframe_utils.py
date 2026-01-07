@@ -1,5 +1,5 @@
 """
-Copyright (c) 2025 MyoLab, Inc.
+Copyright (c) 2026 MyoLab, Inc.
 
 Released under the MyoLab Non-Commercial Scientific Research License
 on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
@@ -81,17 +81,24 @@ def validate_dataframe_file(dataframe_file_path: str, return_df: bool = False):
             raise ValueError(f"Column '{col}' contains infinite values.")
 
     # -------- Optional 3D structure checks
-    has_xyz_suffixes = all(col.endswith(("_x", "_y", "_z")) for col in data_cols)
+    has_xyz_suffixes = all(
+        col.lower().endswith(("_x", "_y", "_z", ".x", ".y", ".z")) for col in data_cols
+    )
 
     if has_xyz_suffixes:
         if len(data_cols) % 3 != 0:
             raise ValueError(
-                "3D data detected (_x,_y,_z suffixes) but column count is not a multiple of 3."
+                "3D data detected (x,y,z suffixes) but column count is not a multiple of 3."
             )
 
         for i in range(0, len(data_cols), 3):
             base = data_cols[i][:-2]
-            expected = [f"{base}_x", f"{base}_y", f"{base}_z"]
+            suffix = data_cols[i][-2:]  # either '_x' or '.x'
+            expected = [
+                f"{base}{suffix[0]}x",
+                f"{base}{suffix[0]}y",
+                f"{base}{suffix[0]}z",
+            ]
             if list(data_cols[i : i + 3]) != expected:
                 raise ValueError(
                     f"Invalid column ordering for 3D data: expected {expected}"
@@ -193,9 +200,10 @@ def from_dataframe_to_array(
     - the first column represents a time axis,
     - remaining columns represent either scalar signals or 3D signals.
 
-    3D signals are detected by column name suffixes ``_x``, ``_y``, ``_z``.
+    3D signals are detected by column name suffixes ``*x``, ``*y``, ``*z``.
+    Where * can be either ``_`` or ``.``.
     When present, columns are assumed to be ordered as
-    ``<name>_x, <name>_y, <name>_z`` for each item, and are reshaped back to
+    ``<name>*x, <name>*y, <name>*z`` for each item, and are reshaped back to
     an array of shape (N, T, 3). Otherwise, scalar data are returned as
     shape (N, J).
 
@@ -242,7 +250,9 @@ def from_dataframe_to_array(
     time_axis = df.iloc[:, 0].to_numpy()
     data_cols = df.columns[1:]
 
-    if all(col.endswith(("_x", "_y", "_z")) for col in data_cols):
+    if all(
+        col.lower().endswith(("_x", "_y", "_z", ".x", ".y", ".z")) for col in data_cols
+    ):
         n_samples = len(df)
         n_items = len(data_cols) // 3
         arr = df[data_cols].to_numpy(dtype=np.float32)

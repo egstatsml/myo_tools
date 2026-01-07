@@ -1,5 +1,5 @@
 """
-Copyright (c) 2025 MyoLab, Inc.
+Copyright (c) 2026 MyoLab, Inc.
 
 Released under the MyoLab Non-Commercial Scientific Research License
 on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
@@ -26,6 +26,7 @@ def apply_marker_set(
     mocap_rgba=[0, 1, 0, 1],
     add_connectors=True,
     connector_rgba=[1, 0, 0, 1],
+    marker_size=[0.005, 0.005, 0.005],  # Size of the marker [rx, ry, rz]
 ):
     """
     Apply a marker set to a Mujoco model.
@@ -38,6 +39,8 @@ def apply_marker_set(
         mocap_rgba (list, optional): RGBA color for mocap bodies. Defaults to green: [0, 1, 0, 1].
         add_connectors (bool, optional): Flag to add connectors between markers and mocap bodies. Defaults to True.
         connector_rgba (list, optional): RGBA color for connectors. Defaults to red: [1, 0, 0, 1].
+        marker_size (float, optional): Size of the marker. Defaults to None.
+
 
     Returns:
         tuple: A tuple containing the updated Mujoco model, handle of preloaded assets, and a list of marker names.
@@ -71,6 +74,7 @@ def apply_marker_set(
             site = mocap_body.add_site(marker_class)
             site.name = tracker_name
             site.rgba = mocap_rgba
+            site.size = marker_size
 
         # Add markers to model
         body = spec.body(marker_body_name)
@@ -84,6 +88,7 @@ def apply_marker_set(
         site = body.add_site(marker_class)
         site.name = marker_name
         site.pos = marker_pos
+        site.size = marker_size
 
         if mocap_bodies and add_connectors:
             connector = spec.add_tendon(name=f"t_{marker_name}", rgba=connector_rgba)

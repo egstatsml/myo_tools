@@ -1,5 +1,5 @@
 """
-Copyright (c) 2025 MyoLab, Inc.
+Copyright (c) 2026 MyoLab, Inc.
 
 Released under the MyoLab Non-Commercial Scientific Research License
 on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
@@ -19,9 +19,9 @@ Example:
 """
 import click
 import mujoco
-from myo_tools.mj.marker.marker_api import apply_marker_set
 
 from myo_tools.examples.examine_mj import examine_sim
+from myo_tools.mj.marker.marker_api import apply_marker_set
 
 
 @click.command(help=DESC)
