@@ -105,7 +105,7 @@ If you use the Model & Software in academic or scientific work, you agree to app
 @software{MyoTools,
   author       = {Myolab.AI},
   title        = {A collection of functions and utilities for the MyoLab Ecosystem},
-  year         = {2025},
+  year         = {2026},
   url          = {https://github.com/myolab/myo_tools},
 }
 ```
