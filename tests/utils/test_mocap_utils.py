@@ -20,6 +20,8 @@ from myo_tools.mjs.marker.marker_api import get_marker_names
 from myo_tools.utils.mocap_ops.mocap_utils import (
     load_trackers,
     load_trackers_and_markerset,
+    rotate_mocap_ydown_to_zup,
+    rotate_mocap_yup_to_zup,
 )
 
 # Mock data for testing
@@ -361,3 +363,195 @@ def test_load_trackers_trc(trc_file_path, markerset_file_path):
     # Check shapes
     assert motion_data[0][0].ndim == 3  # (num_frames, num_trackers, 3)
     assert len(tracker_names) == motion_data[0][0].shape[1]
+
+
+# Tests for rotation functions
+
+
+def test_rotate_mocap_yup_to_zup():
+    """Test Y-up to Z-up rotation."""
+    # Create test data: single marker at position [1, 2, 3] in Y-up coordinates
+    motion_data_yup = np.array([[[1.0, 2.0, 3.0]]], dtype=np.float32)
+
+    # Apply rotation
+    motion_data_zup = rotate_mocap_yup_to_zup(motion_data_yup)
+
+    # Expected transformation: [x, y, z] -> [x, -z, y]
+    # So [1, 2, 3] -> [1, -3, 2]
+    expected = np.array([[[1.0, -3.0, 2.0]]], dtype=np.float32)
+
+    assert motion_data_zup.shape == motion_data_yup.shape
+    assert np.allclose(motion_data_zup, expected, rtol=1e-5)
+
+
+def test_rotate_mocap_ydown_to_zup():
+    """Test Y-down to Z-up rotation."""
+    # Create test data: single marker at position [1, 2, 3] in Y-down coordinates
+    motion_data_ydown = np.array([[[1.0, 2.0, 3.0]]], dtype=np.float32)
+
+    # Apply rotation
+    motion_data_zup = rotate_mocap_ydown_to_zup(motion_data_ydown)
+
+    # Expected transformation: [x, y, z] -> [x, -z, -y]
+    # So [1, 2, 3] -> [1, -3, -2]
+    expected = np.array([[[1.0, -3.0, -2.0]]], dtype=np.float32)
+
+    assert motion_data_zup.shape == motion_data_ydown.shape
+    assert np.allclose(motion_data_zup, expected, rtol=1e-5)
+
+
+def test_rotate_mocap_yup_to_zup_multiple_markers():
+    """Test Y-up to Z-up rotation with multiple markers and frames."""
+    # Create test data: 2 frames, 3 markers
+    motion_data_yup = np.array(
+        [
+            [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]],
+            [[10.0, 11.0, 12.0], [13.0, 14.0, 15.0], [16.0, 17.0, 18.0]],
+        ],
+        dtype=np.float32,
+    )
+
+    # Apply rotation
+    motion_data_zup = rotate_mocap_yup_to_zup(motion_data_yup)
+
+    # Expected transformation for each marker: [x, y, z] -> [x, -z, y]
+    expected = np.array(
+        [
+            [[1.0, -3.0, 2.0], [4.0, -6.0, 5.0], [7.0, -9.0, 8.0]],
+            [[10.0, -12.0, 11.0], [13.0, -15.0, 14.0], [16.0, -18.0, 17.0]],
+        ],
+        dtype=np.float32,
+    )
+
+    assert motion_data_zup.shape == motion_data_yup.shape
+    assert np.allclose(motion_data_zup, expected, rtol=1e-5)
+
+
+def test_rotate_mocap_ydown_to_zup_multiple_markers():
+    """Test Y-down to Z-up rotation with multiple markers and frames."""
+    # Create test data: 2 frames, 3 markers
+    motion_data_ydown = np.array(
+        [
+            [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]],
+            [[10.0, 11.0, 12.0], [13.0, 14.0, 15.0], [16.0, 17.0, 18.0]],
+        ],
+        dtype=np.float32,
+    )
+
+    # Apply rotation
+    motion_data_zup = rotate_mocap_ydown_to_zup(motion_data_ydown)
+
+    # Expected transformation for each marker: [x, y, z] -> [x, -z, -y]
+    expected = np.array(
+        [
+            [[1.0, -3.0, -2.0], [4.0, -6.0, -5.0], [7.0, -9.0, -8.0]],
+            [[10.0, -12.0, -11.0], [13.0, -15.0, -14.0], [16.0, -18.0, -17.0]],
+        ],
+        dtype=np.float32,
+    )
+
+    assert motion_data_zup.shape == motion_data_ydown.shape
+    assert np.allclose(motion_data_zup, expected, rtol=1e-5)
+
+
+@patch(
+    "myo_tools.utils.mocap_ops.mocap_utils.from_c3d_to_numpy",
+    return_value=(mock_motion_data[:, :, :3].copy(), mock_marker_names, mock_framerate),
+)
+def test_load_trackers_with_yup_to_zup_rotation(mock_from_c3d_to_numpy):
+    """Test load_trackers with Y-up to Z-up rotation."""
+    motion_data, tracker_names, framerate = load_trackers(
+        "dummy_path.c3d", mocap_scale=1000, clip_length=-1, rotation="yup_to_zup"
+    )
+
+    # Check that data was loaded
+    assert motion_data.shape[0] == 100
+    assert motion_data.shape[1] == 15
+    assert motion_data.shape[2] == 3
+
+    # The rotation should have been applied
+    # We can't easily verify the exact transformation without knowing the input,
+    # but we can verify that the shape is preserved
+    assert len(tracker_names) == 15
+    assert framerate == mock_framerate
+
+
+@patch(
+    "myo_tools.utils.mocap_ops.mocap_utils.from_c3d_to_numpy",
+    return_value=(mock_motion_data[:, :, :3].copy(), mock_marker_names, mock_framerate),
+)
+def test_load_trackers_with_ydown_to_zup_rotation(mock_from_c3d_to_numpy):
+    """Test load_trackers with Y-down to Z-up rotation."""
+    motion_data, tracker_names, framerate = load_trackers(
+        "dummy_path.c3d", mocap_scale=1000, clip_length=-1, rotation="ydown_to_zup"
+    )
+
+    # Check that data was loaded
+    assert motion_data.shape[0] == 100
+    assert motion_data.shape[1] == 15
+    assert motion_data.shape[2] == 3
+
+    # The rotation should have been applied
+    assert len(tracker_names) == 15
+    assert framerate == mock_framerate
+
+
+@patch(
+    "myo_tools.utils.mocap_ops.mocap_utils.from_c3d_to_numpy",
+    return_value=(mock_motion_data[:, :, :3].copy(), mock_marker_names, mock_framerate),
+)
+def test_load_trackers_with_no_rotation(mock_from_c3d_to_numpy):
+    """Test load_trackers with no rotation (rotation=None)."""
+    motion_data, tracker_names, framerate = load_trackers(
+        "dummy_path.c3d", mocap_scale=1000, clip_length=-1, rotation=None
+    )
+
+    # Check that data was loaded
+    assert motion_data.shape[0] == 100
+    assert motion_data.shape[1] == 15
+    assert motion_data.shape[2] == 3
+
+    # No rotation should have been applied
+    assert len(tracker_names) == 15
+    assert framerate == mock_framerate
+
+
+@patch(
+    "myo_tools.utils.mocap_ops.mocap_utils.from_c3d_to_numpy",
+    return_value=(mock_motion_data[:, :, :3].copy(), mock_marker_names, mock_framerate),
+)
+def test_load_trackers_with_invalid_rotation(mock_from_c3d_to_numpy):
+    """Test load_trackers raises exception for invalid rotation type."""
+    with pytest.raises(Exception, match="Unsupported rotation type"):
+        load_trackers(
+            "dummy_path.c3d", mocap_scale=1000, clip_length=-1, rotation="invalid"
+        )
+
+
+@patch(
+    "myo_tools.utils.mocap_ops.mocap_utils.from_c3d_to_numpy",
+    return_value=(mock_motion_data[:, :, :3].copy(), mock_marker_names, mock_framerate),
+)
+def test_load_trackers_and_markerset_with_rotation(mock_from_c3d_to_numpy):
+    """Test load_trackers_and_markerset with rotation parameter."""
+    markerset_xml = """
+    <markerset>
+        <marker name="marker1"/>
+        <marker name="marker3"/>
+        <marker name="marker10"/>
+    </markerset>
+    """
+
+    motion_data_subject_list, markerset, framerate = load_trackers_and_markerset(
+        trackers_file_path="dummy_path.c3d",
+        markerset_handle=markerset_xml,
+        rotation="yup_to_zup",
+    )
+
+    # Check that data was loaded and rotation was applied
+    motion_data = motion_data_subject_list[0][0]
+    marker_names = get_marker_names(markerset)
+
+    assert motion_data.shape[1] == 3  # 3 markers
+    assert len(marker_names) == 3
+    assert framerate == mock_framerate

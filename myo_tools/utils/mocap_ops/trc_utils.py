@@ -18,14 +18,12 @@ from myo_tools.utils.log_ops import logger
 logger = logger.getLogger("myo_tools.utils.trc_utils")
 
 
-def trc_loader(trc_file_path: str, rotate_yup_to_zup: bool = True):
+def trc_loader(trc_file_path: str):
     """
     Attempt to load a TRC file.
 
     Args:
         trc_file_path (str): Path to the .trc file
-        rotate_yup_to_zup (bool): Whether to rotate the axes from osim to MuJoCo format.
-            Default is True.
 
     Returns:
         motion_data (np.ndarray or None): Shape is (num_frames, num_markers, 3)
@@ -89,16 +87,6 @@ def trc_loader(trc_file_path: str, rotate_yup_to_zup: bool = True):
 
         motion_data = np.array(motion_data)  # Shape: (num_frames, num_markers, 3)
 
-        if rotate_yup_to_zup:
-            # Rotate axes from OpenSim (Y-up) to MuJoCo (Z-up)
-            # Rotate from Y-up to Z-up: R_x(-90°)
-            # This rotates around X-axis by -90 degrees
-            # [x, y, z] -> [x, -z, y]
-            rotation_matrix = np.array(
-                [[1, 0, 0], [0, 0, -1], [0, 1, 0]], dtype=np.float32
-            )
-            motion_data = motion_data @ rotation_matrix.T
-
         return motion_data, marker_names, framerate, True
 
     except Exception:
@@ -108,23 +96,19 @@ def trc_loader(trc_file_path: str, rotate_yup_to_zup: bool = True):
 
 def from_trc_to_numpy(
     trc_file_path: str,
-    rotate_yup_to_zup: bool = True,
 ):
     """
     Load a TRC file.
-    Then fill missing values in the resulting motion data with a forward fill.
-    Finally, apply the mocap scale and clip the length if needed.
+
     Args:
         trc_file_path (str): Path to the .trc file
-        rotate_yup_to_zup (bool): Whether to rotate the axes from osim to MuJoCo format.
+
     Returns:
         motion_data (np.ndarray): Shape is (num_frames, num_trackers, 3)
         tracker_names (list): Tracker names
         framerate (float): Frame rate extracted from TRC file
     """
-    motion_data, tracker_names, framerate, success = trc_loader(
-        trc_file_path, rotate_yup_to_zup=rotate_yup_to_zup
-    )
+    motion_data, tracker_names, framerate, success = trc_loader(trc_file_path)
 
     if not success:
         raise Exception("Could not load trc file")

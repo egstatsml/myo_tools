@@ -42,18 +42,20 @@ The `mocap_ops` module handles motion capture data in multiple formats commonly 
 <summary><b><code>trc_utils.py</code></b> - Utilities for loading TRC motion capture files, commonly used with OpenSim</summary>
 
 **Key Functions:**
-- `trc_loader(trc_file_path, rotate_yup_to_zup=True)`: Load TRC files with optional coordinate system rotation
-- `from_trc_to_numpy(trc_file_path, rotate_yup_to_zup=True)`: Main TRC loading function
+- `trc_loader(trc_file_path)`: Load TRC files
+- `from_trc_to_numpy(trc_file_path)`: Main TRC loading function
 
 **Features:**
-- Automatic coordinate system conversion from Y-up (OpenSim) to Z-up (MuJoCo)
 - Parses TRC header metadata (DataRate, CameraRate)
 - Handles variable header formats
+- Returns data in original coordinate system (coordinate transformations handled by `mocap_utils.py`)
 
 **Returns:**
 - Motion data as numpy arrays with shape `(num_frames, num_markers, 3)`
 - Marker names list
 - Frame rate (Hz)
+
+**Note:** For coordinate system conversions (Y-up to Z-up, etc.), use the higher-level functions in `mocap_utils.py` which provide the `rotation` parameter.
 
 </details>
 
@@ -62,21 +64,35 @@ The `mocap_ops` module handles motion capture data in multiple formats commonly 
 
 **Key Functions:**
 
-#### `load_trackers(trackers_file_path, mocap_scale, clip_length)`
+#### `rotate_mocap_yup_to_zup(motion_data)`
+Rotate motion capture data from Y-up coordinate system (OpenSim) to Z-up coordinate system (MuJoCo).
+
+**Parameters:**
+- `motion_data`: Motion capture data array with shape `(num_frames, num_markers, 3)`
+
+**Returns:**
+- Transformed motion data array in Z-up coordinate system
+
+#### `rotate_mocap_ydown_to_zup(motion_data)`
+Rotate motion capture data from Y-down coordinate system (OpenCV) to Z-up coordinate system (MuJoCo).
+
+**Parameters:**
+- `motion_data`: Motion capture data array with shape `(num_frames, num_markers, 3)`
+
+**Returns:**
+- Transformed motion data array in Z-up coordinate system
+
+#### `load_trackers(trackers_file_path, mocap_scale, clip_length, rotation)`
 Load tracker data from various file formats (.c3d, .trc, .csv, .parquet).
 
 **Parameters:**
 - `trackers_file_path`: Path to the trackers file
 - `mocap_scale`: Scale factor for mocap data (e.g., 1000 for mm to m conversion)
 - `clip_length`: Number of frames to clip (use -1 for full length)
-
-#### `clean_trackers(motion_data, tracker_names)`
-Clean motion data by filling gaps and removing static trackers.
-
-**Features:**
-- Forward-fill NaN values in motion data
-- Remove trackers that are static for >50% of frames
-- Provides warnings about data modifications
+- `rotation`: Rotation type to apply. Options are:
+  - `None`: No rotation applied (default)
+  - `"yup_to_zup"`: Rotate from OpenSim (Y-up) to MuJoCo (Z-up)
+  - `"ydown_to_zup"`: Rotate from OpenCV (Y-down) to MuJoCo (Z-up)
 
 #### `load_trackers_and_markerset(trackers_file_path, markerset_handle, ...)`
 Comprehensive loading function that integrates tracker data with markerset definitions.
@@ -85,6 +101,7 @@ Comprehensive loading function that integrates tracker data with markerset defin
 - `trackers_file_path`: Path to trackers file
 - `markerset_handle`: Markerset definition (file path or XML element tree)
 - `mocap_scale`: Scale factor (default: 1000)
+- `rotation`: Rotation type to apply (default: None). Options: `None`, `"yup_to_zup"`, `"ydown_to_zup"`
 - `clip_length`: Clip length (default: -1, full length)
 - `chunk_size`: Size of chunks to split data into (default: -1, no chunking)
 - `allow_multisubject`: Enable multi-subject tracker file handling (default: False)
@@ -127,9 +144,17 @@ print(f"Shape: {motion_data.shape}, FPS: {framerate}")
 ```python
 from myo_tools.utils.mocap_ops.trc_utils import from_trc_to_numpy
 
-motion_data, marker_names, framerate = from_trc_to_numpy(
+# Load TRC file (returns data in original coordinate system)
+motion_data, marker_names, framerate = from_trc_to_numpy("path/to/file.trc")
+
+# For coordinate system conversion, use load_trackers from mocap_utils:
+from myo_tools.utils.mocap_ops.mocap_utils import load_trackers
+
+motion_data, marker_names, framerate = load_trackers(
     "path/to/file.trc",
-    rotate_yup_to_zup=True  # Convert from OpenSim to MuJoCo coordinates
+    mocap_scale=1000,
+    clip_length=-1,
+    rotation="yup_to_zup"  # Convert from OpenSim to MuJoCo coordinates
 )
 ```
 
@@ -140,9 +165,10 @@ from myo_tools.utils.mocap_ops.mocap_utils import load_trackers_and_markerset
 motion_data_list, markerset, framerate = load_trackers_and_markerset(
     trackers_file_path="path/to/mocap.c3d",
     markerset_handle="path/to/markerset.xml",
-    mocap_scale=1000,  # Convert from mm to m
-    clip_length=-1,    # Use full length
-    chunk_size=-1,     # No chunking
+    mocap_scale=1000,       # Convert from mm to m
+    rotation="yup_to_zup",  # Convert from OpenSim to MuJoCo coordinates
+    clip_length=-1,         # Use full length
+    chunk_size=-1,          # No chunking
     allow_multisubject=False
 )
 ```

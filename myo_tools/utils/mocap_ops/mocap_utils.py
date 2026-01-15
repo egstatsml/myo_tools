@@ -28,16 +28,63 @@ from myo_tools.utils.mocap_ops.trc_utils import from_trc_to_numpy
 logger = logger.getLogger("myo_tools.utils.mocap_utils")
 
 
-def load_trackers(
-    trackers_file_path, mocap_scale, clip_length, rotate_yup_to_zup=False
-):
+def rotate_mocap_yup_to_zup(motion_data: np.ndarray):
+    """
+    Rotate motion capture data from Y-up coordinate system (OpenSim) to Z-up coordinate system (MuJoCo).
+
+    This function applies a coordinate transformation that rotates axes from OpenSim's convention
+    (where Y is up) to MuJoCo's convention (where Z is up). The transformation is equivalent to
+    a 90-degree rotation around the X-axis in the negative direction.
+
+    The transformation maps coordinates as: [x, y, z] -> [x, -z, y]
+
+    Args:
+        motion_data (np.ndarray): Motion capture data array with shape (num_frames, num_markers, 3).
+            The last dimension contains [x, y, z] coordinates in the Y-up coordinate system.
+
+    Returns:
+        np.ndarray: Transformed motion data array with the same shape as input, but with coordinates
+            in the Z-up coordinate system.
+    """
+    rotation_matrix = np.array([[1, 0, 0], [0, 0, -1], [0, 1, 0]], dtype=np.float32)
+    motion_data = motion_data @ rotation_matrix.T
+    return motion_data
+
+
+def rotate_mocap_ydown_to_zup(motion_data: np.ndarray):
+    """
+    Rotate motion capture data from Y-down coordinate system (OpenCV) to Z-up coordinate system (MuJoCo).
+
+    This function applies a coordinate transformation that rotates axes from OpenCV's convention
+    (where Y is down) to MuJoCo's convention (where Z is up). The transformation is equivalent to
+    a 90-degree rotation around the X-axis in the positive direction, followed by a 180-degree
+    rotation around the X-axis.
+
+    The transformation maps coordinates as: [x, y, z] -> [x, -z, -y]
+
+    Args:
+        motion_data (np.ndarray): Motion capture data array with shape (num_frames, num_markers, 3).
+            The last dimension contains [x, y, z] coordinates in the Y-down coordinate system.
+
+    Returns:
+        np.ndarray: Transformed motion data array with the same shape as input, but with coordinates
+            in the Z-up coordinate system.
+    """
+    rotation_matrix = np.array([[1, 0, 0], [0, 0, -1], [0, -1, 0]], dtype=np.float32)
+    motion_data = motion_data @ rotation_matrix.T
+    return motion_data
+
+
+def load_trackers(trackers_file_path, mocap_scale, clip_length=-1, rotation=None):
     """
     Load trackers data from a file, apply scaling and clipping.
+
     Args:
         trackers_file_path (str): Path to the trackers file (e.g., .c3d)
         mocap_scale (int): Scale factor for mocap data
-        clip_length (int): Length of the clip to use
-        rotate_yup_to_zup (bool): Whether to rotate the axes from osim to MuJoCo format. Default is False.
+        clip_length (int): Length of the clip to use. Defaults to -1 (use full length).
+        rotation (str): Rotation type to apply to the axes. Currently supported are "yup_to_zup" or "ydown_to_zup". Defaults to None.
+
     Returns:
         motion_data (np.ndarray): Loaded and processed motion data
         tracker_names (list): List of tracker names
@@ -67,15 +114,17 @@ def load_trackers(
     # Apply mocap scale
     motion_data /= mocap_scale
 
-    # Optionally rotate axes from Y-up to Z-up
-    if rotate_yup_to_zup:
+    # Optionally rotate axes
+    if rotation == "yup_to_zup":
         logger.info("Rotating mocap data from Y-up to Z-up")
-        # Rotate axes from OpenSim (Y-up) to MuJoCo (Z-up)
-        # Rotate from Y-up to Z-up: R_x(-90°)
-        # This rotates around X-axis by -90 degrees
-        # [x, y, z] -> [x, -z, y]
-        rotation_matrix = np.array([[1, 0, 0], [0, 0, -1], [0, 1, 0]], dtype=np.float32)
-        motion_data = motion_data @ rotation_matrix.T
+        motion_data = rotate_mocap_yup_to_zup(motion_data)
+    elif rotation == "ydown_to_zup":
+        logger.info("Rotating mocap data from Y-down to Z-up")
+        motion_data = rotate_mocap_ydown_to_zup(motion_data)
+    elif rotation is not None:
+        raise Exception(
+            f"Unsupported rotation type: {rotation}. Currently supported are 'yup_to_zup' and 'ydown_to_zup'."
+        )
 
     # Clip length if needed
     if clip_length > 0:
@@ -88,7 +137,7 @@ def load_trackers_and_markerset(
     trackers_file_path: str,
     markerset_handle: str | ET.Element,
     mocap_scale: int = 1000,
-    rotate_yup_to_zup: bool = False,
+    rotation: str = None,
     clip_length: int = -1,
     chunk_size: int = -1,
     allow_multisubject: bool = False,
@@ -102,7 +151,7 @@ def load_trackers_and_markerset(
         trackers_file_path (str): Path to the trackers file (.c3d, .trc, .csv, .parquet)
         markerset_handle (str | ET.Element): The markerset definition, either as a file path or an XML element.
         mocap_scale (int, optional): Scale factor for mocap data. Defaults to 1000 (i.e. from mm to m).
-        rotate_yup_to_zup (bool, optional): Whether to rotate the axes from osim to MuJoCo format. Defaults to False.
+        rotation (str, optional): Rotation type to apply to the axes. Currently supported are "yup_to_zup" or "ydown_to_zup". Defaults to None.
         clip_length (int): Length of the clip to use. Defaults to -1 (use full length).
         chunk_size (int): Size of chunks to split the motion data into. Defaults to -1 (use full length).
         allow_multisubject (bool, optional): If True, allows loading trackers files with multiple subjects.
@@ -117,7 +166,7 @@ def load_trackers_and_markerset(
     """
     # Load trackers data
     motion_data, tracker_names, framerate = load_trackers(
-        trackers_file_path, mocap_scale, clip_length, rotate_yup_to_zup
+        trackers_file_path, mocap_scale, clip_length, rotation
     )
 
     # Load markerset
