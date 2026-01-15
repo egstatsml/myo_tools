@@ -70,7 +70,7 @@ def test_load_trackers_and_markerset(mock_from_c3d_to_numpy):
     """
 
     motion_data_subject_list, markerset, framerate = load_trackers_and_markerset(
-        "dummy_path.c3d", markerset_xml
+        trackers_file_path="dummy_path.c3d", markerset_handle=markerset_xml
     )
     marker_names = get_marker_names(markerset)
     motion_data = motion_data_subject_list[0][0]  # first subject, first chunk
@@ -106,7 +106,7 @@ def test_load_trackers_and_markerset_fallback(mock_from_c3d_to_numpy):
     """
 
     motion_data_subject_list, markerset, framerate = load_trackers_and_markerset(
-        "dummy_path.c3d", markerset_xml
+        trackers_file_path="dummy_path.c3d", markerset_handle=markerset_xml
     )
     marker_names = get_marker_names(markerset)
     motion_data = motion_data_subject_list[0][0]
@@ -140,7 +140,9 @@ def test_load_trackers_and_markerset_with_duplicate_markers(mock_from_c3d_to_num
 
     # Expect an exception due to duplicate marker names
     with pytest.raises(Exception):
-        load_trackers_and_markerset("dummy_path.c3d", markerset_xml)
+        load_trackers_and_markerset(
+            trackers_file_path="dummy_path.c3d", markerset_handle=markerset_xml
+        )
 
 
 @patch(
@@ -157,7 +159,9 @@ def test_load_trackers_and_markerset_warns_on_missing_markers(mock_from_c3d_to_n
     """
 
     with pytest.warns(UserWarning):
-        load_trackers_and_markerset("dummy_path.c3d", markerset_xml)
+        load_trackers_and_markerset(
+            trackers_file_path="dummy_path.c3d", markerset_handle=markerset_xml
+        )
 
 
 @patch(
@@ -344,7 +348,9 @@ def test_load_trackers_csv_with_clipping(mock_from_dataframe):
 def test_load_trackers_trc(trc_file_path, markerset_file_path):
     """Test load_trackers with a TRC file."""
     motion_data, tracker_names, framerate = load_trackers_and_markerset(
-        trc_file_path, markerset_file_path, mocap_scale=1
+        trackers_file_path=trc_file_path,
+        markerset_handle=markerset_file_path,
+        mocap_scale=1,
     )
 
     # Basic assertions

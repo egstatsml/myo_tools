@@ -1,8 +1,8 @@
 [project]
 name = "myo_tools"
-version = "0.0.2"
+version = "0.0.4"
 authors = [{name = "myolab"}]
-description = "A Python package for the myo tools."
+description = "A Python package for the myo api."
 readme = "README.md"
 requires-python = ">=3.8"
 
@@ -25,9 +25,10 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools]
 packages = {find = {exclude = ["tests*", "tests.*"]}}
 
+
 [project.optional-dependencies]
 dev = ["pre-commit", "pytest", "click", "requests"]
-test = ["pytest", "click"]
+test = ["pytest", "click", "mujoco-mjx==3.3.3"]
 
 [tool.ruff.lint]
 ignore = ["C901", "E501", "E741", "F402", "F823", "E402" ]
