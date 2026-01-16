@@ -57,10 +57,9 @@ def rotate_mocap_ydown_to_zup(motion_data: np.ndarray):
 
     This function applies a coordinate transformation that rotates axes from OpenCV's convention
     (where Y is down) to MuJoCo's convention (where Z is up). The transformation is equivalent to
-    a 90-degree rotation around the X-axis in the positive direction, followed by a 180-degree
-    rotation around the X-axis.
+    a -90-degree rotation around the X-axis.
 
-    The transformation maps coordinates as: [x, y, z] -> [x, -z, -y]
+    The transformation maps coordinates as: [x, y, z] -> [x, z, -y]
 
     Args:
         motion_data (np.ndarray): Motion capture data array with shape (num_frames, num_markers, 3).
@@ -70,7 +69,7 @@ def rotate_mocap_ydown_to_zup(motion_data: np.ndarray):
         np.ndarray: Transformed motion data array with the same shape as input, but with coordinates
             in the Z-up coordinate system.
     """
-    rotation_matrix = np.array([[1, 0, 0], [0, 0, -1], [0, -1, 0]], dtype=np.float32)
+    rotation_matrix = np.array([[1, 0, 0], [0, 0, 1], [0, -1, 0]], dtype=np.float32)
     motion_data = motion_data @ rotation_matrix.T
     return motion_data
 

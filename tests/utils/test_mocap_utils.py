@@ -392,9 +392,9 @@ def test_rotate_mocap_ydown_to_zup():
     # Apply rotation
     motion_data_zup = rotate_mocap_ydown_to_zup(motion_data_ydown)
 
-    # Expected transformation: [x, y, z] -> [x, -z, -y]
-    # So [1, 2, 3] -> [1, -3, -2]
-    expected = np.array([[[1.0, -3.0, -2.0]]], dtype=np.float32)
+    # Expected transformation: [x, y, z] -> [x, z, -y]
+    # So [1, 2, 3] -> [1, 3, -2]
+    expected = np.array([[[1.0, 3.0, -2.0]]], dtype=np.float32)
 
     assert motion_data_zup.shape == motion_data_ydown.shape
     assert np.allclose(motion_data_zup, expected, rtol=1e-5)
@@ -441,11 +441,11 @@ def test_rotate_mocap_ydown_to_zup_multiple_markers():
     # Apply rotation
     motion_data_zup = rotate_mocap_ydown_to_zup(motion_data_ydown)
 
-    # Expected transformation for each marker: [x, y, z] -> [x, -z, -y]
+    # Expected transformation for each marker: [x, y, z] -> [x, z, -y]
     expected = np.array(
         [
-            [[1.0, -3.0, -2.0], [4.0, -6.0, -5.0], [7.0, -9.0, -8.0]],
-            [[10.0, -12.0, -11.0], [13.0, -15.0, -14.0], [16.0, -18.0, -17.0]],
+            [[1.0, 3.0, -2.0], [4.0, 6.0, -5.0], [7.0, 9.0, -8.0]],
+            [[10.0, 12.0, -11.0], [13.0, 15.0, -14.0], [16.0, 18.0, -17.0]],
         ],
         dtype=np.float32,
     )
