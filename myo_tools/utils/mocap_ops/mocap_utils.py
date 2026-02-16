@@ -139,12 +139,11 @@ def load_trackers_and_markerset(
     rotation: str = None,
     clip_length: int = -1,
     chunk_size: int = -1,
-    allow_multisubject: bool = False,
 ):
     """
     Load a trackers file and the markerset. Then filter the motion data and the markerset to be consistent
-    between each other. If allow_multisubject is True, handle multi-subject trackers files. If chunk_size
-    is provided, split the motion data into chunks of the given size.
+    between each other. If chunk_size is provided, split the motion data into chunks of the given size.
+    Multi-subject trackers data are supported.
 
     Args:
         trackers_file_path (str): Path to the trackers file (.c3d, .trc, .csv, .parquet)
@@ -153,8 +152,6 @@ def load_trackers_and_markerset(
         rotation (str, optional): Rotation type to apply to the axes. Currently supported are "yup_to_zup" or "ydown_to_zup". Defaults to None.
         clip_length (int): Length of the clip to use. Defaults to -1 (use full length).
         chunk_size (int): Size of chunks to split the motion data into. Defaults to -1 (use full length).
-        allow_multisubject (bool, optional): If True, allows loading trackers files with multiple subjects.
-            Defaults to False.
 
     Returns:
         (motion_data_list, tracker_names, framerate):
@@ -181,18 +178,26 @@ def load_trackers_and_markerset(
     tracker_names = [tracker_names[i] for i in idxs_valid_trackers]
 
     # Handle multi-subject trackers files
-    subjects_list = []
-    if allow_multisubject:
-        for t in tracker_names:
-            if ":" in t:
-                subject = t.split(":")[0]
-                subjects_list.append(subject)
-        subjects_list = list(set(subjects_list))
+    # Check if we have true multi-subject data (multiple subjects sharing tracker names)
+    colon_trackers = {}  # tracker_name -> set of subjects
+    subjects_with_shared_trackers = set()
+    for t in tracker_names:
+        if ":" in t:
+            subject, tracker_name = t.split(":", 1)
+            if tracker_name not in colon_trackers:
+                colon_trackers[tracker_name] = set()
+            colon_trackers[tracker_name].add(subject)
+            # If this tracker now has multiple subjects, add all subjects to the list
+            if len(colon_trackers[tracker_name]) > 1:
+                subjects_with_shared_trackers.update(colon_trackers[tracker_name])
+    subjects_list = list(subjects_with_shared_trackers)
+    # If no true multi-subject data found, treat everything as single-subject
     if len(subjects_list) == 0:
         subjects_list = ["single_subject"]
 
     motion_data_subject_list = []
     all_tracker_names_cleaned = []
+    motion_data_original = motion_data.copy()
     for subject in subjects_list:
         # we have a markerset and we need to ensure the trackers data gets filtered
         duplicates = []  # duplicated markers in the trackers file (not allowed)
@@ -203,7 +208,7 @@ def load_trackers_and_markerset(
             m_found = False
             for it, t in enumerate(tracker_names):
                 t_splitted = re.findall(r"[A-Za-z0-9]+(?:[_-][0-9]+)?", t)
-                if subject != "single_subject" and subject not in t_splitted:
+                if subject != "single_subject" and subject not in t:
                     continue
                 if m in t_splitted or m == t:
                     if m_found:
@@ -224,19 +229,19 @@ def load_trackers_and_markerset(
             )
 
         # Filter motion data with the obtained mapping
-        motion_data = motion_data[:, mapping, :3]
+        motion_data_filtered = motion_data_original[:, mapping, :3]
 
         # Split motion data into chunks if needed
-        chunk_size = chunk_size if chunk_size > 0 else motion_data.shape[0]
+        chunk_size = chunk_size if chunk_size > 0 else motion_data_filtered.shape[0]
         motion_data_chunk_list = [
-            motion_data[i : i + chunk_size]
-            for i in range(0, motion_data.shape[0], chunk_size)
+            motion_data_filtered[i : i + chunk_size]
+            for i in range(0, motion_data_filtered.shape[0], chunk_size)
         ]
         motion_data_subject_list.append(motion_data_chunk_list)
         all_tracker_names_cleaned += tracker_names_cleaned
 
     # Remove from the markerset the markers that are not in the trackers file
-    tracker_names_cleaned = list(set(tracker_names_cleaned))
+    tracker_names_cleaned = list(set(all_tracker_names_cleaned))
 
     idxs_markers_to_delete = []
     for i, marker in enumerate(markerset):

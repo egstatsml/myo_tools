@@ -104,7 +104,6 @@ Comprehensive loading function that integrates tracker data with markerset defin
 - `rotation`: Rotation type to apply (default: None). Options: `None`, `"yup_to_zup"`, `"ydown_to_zup"`
 - `clip_length`: Clip length (default: -1, full length)
 - `chunk_size`: Size of chunks to split data into (default: -1, no chunking)
-- `allow_multisubject`: Enable multi-subject tracker file handling (default: False)
 
 **Returns:**
 - `motion_data_list`: List of lists containing motion data per subject and chunk
@@ -169,7 +168,6 @@ motion_data_list, markerset, framerate = load_trackers_and_markerset(
     rotation="yup_to_zup",  # Convert from OpenSim to MuJoCo coordinates
     clip_length=-1,         # Use full length
     chunk_size=-1,          # No chunking
-    allow_multisubject=False
 )
 ```
 

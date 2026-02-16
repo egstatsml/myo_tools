@@ -33,9 +33,18 @@ jobs:
           tag: v${{ steps.read_toml.outputs.value }}
 
       - name: If Tag does not exists, Create Git Tag
+        if: steps.checkTag.outputs.exists == 'false'
         run: |
           git tag v${{ steps.read_toml.outputs.value }}
           git push origin v${{ steps.read_toml.outputs.value }}
+
+      - name: Create GitHub Release
+        if: steps.checkTag.outputs.exists == 'false'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.read_toml.outputs.value }}
+          name: v${{ steps.read_toml.outputs.value }}
+          generate_release_notes: true
 
   pypi-publish:
     needs: tag_and_release

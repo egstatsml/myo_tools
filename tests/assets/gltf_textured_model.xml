@@ -1,0 +1,11 @@
+<mujoco model="gltf_textured">
+  <asset>
+    <texture name="tex1" type="2d" file="textures/10x10.png"/>
+    <material name="mat1" texture="tex1"/>
+  </asset>
+  <worldbody>
+    <body name="box" pos="0 0 0.1">
+      <geom type="box" size=".05 .05 .01" material="mat1"/>
+    </body>
+  </worldbody>
+</mujoco>

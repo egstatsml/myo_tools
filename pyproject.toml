@@ -1,6 +1,6 @@
 [project]
 name = "myo_tools"
-version = "0.1.1"
+version = "0.3.0"
 authors = [{name = "myolab"}]
 description = "A Python package for the myo api."
 readme = "README.md"
@@ -10,10 +10,12 @@ dependencies = [
   "numpy",
   "mujoco==3.3.3",
   "lxml",
+  "h5py",
   "ezc3d",
   "c3d",
   "GitPython",
   "scipy",
+  "tqdm",
   "pandas",
   "pyarrow",
 ]
