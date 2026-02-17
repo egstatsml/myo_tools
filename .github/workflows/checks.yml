@@ -12,6 +12,8 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: psf/black@stable
+        with:
+          version: 24.2.0
       - uses: chartboost/ruff-action@v1
         with:
           version: 0.2.1
